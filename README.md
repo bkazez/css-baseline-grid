@@ -2,6 +2,8 @@
 
 CLI tool that checks whether text baselines sit on a baseline grid, plus a plain CSS rhythm system.
 
+**[See the live demo](https://bkazez.github.io/css-baseline-grid/)** -- three font sizes, one baseline grid.
+
 ## Quick start
 
 ```sh

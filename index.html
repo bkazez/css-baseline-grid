@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>css-baseline-grid</title>
+  <link rel="stylesheet" href="rhythm.css">
+  <style>
+    :root {
+      --grid: 1.5rem;  /* 24px at default 16px font */
+    }
+
+    body {
+      font-family: Georgia, "Times New Roman", serif;
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: calc(2 * var(--grid)) 1rem;
+      color: #222;
+    }
+
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.25rem; }
+    h3 { font-size: 1rem; font-weight: 600; }
+
+    /* rhythm: top spacing between sections */
+    h2 { margin-top: calc(2 * var(--grid)); }
+    h3 { margin-top: calc(1 * var(--grid)); }
+    h1 + p,
+    h2 + p,
+    h3 + p,
+    p + p { margin-top: calc(1 * var(--grid)); }
+
+    /* rhythm-box: bordered container */
+    .rhythm-box {
+      margin-top: calc(2 * var(--grid));
+      padding-top: calc(var(--grid) - 1px);
+      border-top: 1px solid #999;
+      padding-bottom: calc(var(--grid) - 1px);
+      border-bottom: 1px solid #999;
+    }
+
+    /* Grid overlay (always visible) */
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 99999;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 0, 0, 0.15) 0px,
+        rgba(255, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent var(--grid)
+      );
+    }
+
+    a { color: inherit; }
+
+    .gh-link {
+      font-family: system-ui, sans-serif;
+      font-size: 0.8rem;
+      position: fixed;
+      top: 0.5rem;
+      right: 0.5rem;
+      z-index: 100000;
+      padding: 0.25rem 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background: #fff;
+      text-decoration: none;
+    }
+
+    .gh-link:hover {
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <a class="gh-link" href="https://github.com/bkazez/css-baseline-grid">GitHub</a>
+  <div class="grid-overlay" id="gridOverlay"></div>
+
+  <h1>Baseline Grid Demo</h1>
+
+  <p>Every line of text on this page sits on a baseline grid. The red lines
+  mark the grid. Three different font sizes (h1, h2, body) all share the same
+  baseline grid, corrected at runtime via JavaScript.</p>
+
+  <h2>Rhythm: Text Spacing</h2>
+
+  <p>The rhythm pattern spaces text elements in multiples of <code>var(--grid)</code>.
+  Margins are set with <code>margin-top: calc(N * var(--grid))</code>.</p>
+
+  <p>Adjacent paragraphs get one grid unit of space between them. Headings get two
+  units above them to create visual separation between sections.</p>
+
+  <h3>Sub-section</h3>
+
+  <p>Sub-headings use one grid unit of top margin. The consistent spacing creates
+  a predictable reading rhythm that makes the page feel solid.</p>
+
+  <h2>Rhythm-Box: Bordered Containers</h2>
+
+  <p>When a container has a border, the border's thickness must be subtracted from
+  the padding to preserve grid alignment. This is the rhythm-box pattern.</p>
+
+  <div class="rhythm-box">
+    <h3>Bordered Container</h3>
+    <p>This box has a 1px border with <code>padding: calc(var(--grid) - 1px)</code>.
+    The content stays on-grid because the padding compensates for the border.</p>
+  </div>
+
+  <h2>How It Works</h2>
+
+  <p>CSS alone cannot achieve a true baseline grid across mixed font sizes because
+  it has no access to font metrics. Different font sizes place the baseline at
+  different positions within the same line box.</p>
+
+  <p>The fix is a small JavaScript function that detects each element's baseline
+  offset using a zero-height <code>inline-block</code> probe, then adjusts
+  <code>margin-top</code> and <code>padding-bottom</code> to shift the text onto
+  the grid without changing the element's total box height.</p>
+
+  <script>
+    function getBaselineY(el) {
+      const probe = document.createElement("span");
+      probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+      el.insertBefore(probe, el.firstChild);
+      const y = probe.getBoundingClientRect().top;
+      probe.remove();
+      return y;
+    }
+
+    function getBaselineOffset(el) {
+      return getBaselineY(el) - el.getBoundingClientRect().top;
+    }
+
+    function alignBaselines(gridPx) {
+      const refEl = document.createElement("p");
+      refEl.textContent = "x";
+      refEl.style.cssText = "position:absolute;visibility:hidden";
+      document.body.appendChild(refEl);
+      const refOffset = getBaselineOffset(refEl);
+      refEl.remove();
+
+      document.querySelectorAll("h1, h2, h3, h4, h5, h6, p").forEach(el => {
+        const elOffset = getBaselineOffset(el);
+        const raw = elOffset - refOffset;
+        const correction = ((raw % gridPx) + gridPx) % gridPx;
+        if (correction === 0) return;
+
+        const currentMargin = parseFloat(getComputedStyle(el).marginTop);
+        el.style.marginTop = (currentMargin - correction) + "px";
+        el.style.paddingBottom = correction + "px";
+      });
+    }
+
+    const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--grid"));
+    const gridPx = grid * parseFloat(getComputedStyle(document.documentElement).fontSize);
+    alignBaselines(gridPx);
+
+    // Anchor grid overlay to first baseline
+    const overlay = document.getElementById("gridOverlay");
+    const firstBaseline = getBaselineY(document.querySelector("h1"));
+    overlay.style.backgroundPositionY = (firstBaseline + window.scrollY) + "px";
+  </script>
+</body>
+</html>
