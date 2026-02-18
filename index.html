@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>css-baseline-grid</title>
+  <title>CSS Baseline Grid</title>
   <link rel="stylesheet" href="rhythm.css">
   <style>
     :root {
-      --grid: 1.5rem;  /* 24px at default 16px font */
+      --grid: 1.5rem;
     }
 
     body {
@@ -22,7 +22,6 @@
     h2 { font-size: 1.25rem; }
     h3 { font-size: 1rem; font-weight: 600; }
 
-    /* rhythm: top spacing between sections */
     h2 { margin-top: calc(2 * var(--grid)); }
     h3 { margin-top: calc(1 * var(--grid)); }
     h1 + p,
@@ -30,7 +29,6 @@
     h3 + p,
     p + p { margin-top: calc(1 * var(--grid)); }
 
-    /* rhythm-box: bordered container */
     .rhythm-box {
       margin-top: calc(2 * var(--grid));
       padding-top: calc(var(--grid) - 1px);
@@ -39,13 +37,10 @@
       border-bottom: 1px solid #999;
     }
 
-    /* Grid overlay (always visible) */
     .grid-overlay {
       position: absolute;
-      top: 0;
       left: 0;
       width: 100%;
-      height: 100%;
       pointer-events: none;
       z-index: 99999;
       background: repeating-linear-gradient(
@@ -59,34 +54,39 @@
 
     a { color: inherit; }
 
-    .gh-link {
-      font-family: system-ui, sans-serif;
-      font-size: 0.8rem;
-      position: fixed;
-      top: 0.5rem;
-      right: 0.5rem;
-      z-index: 100000;
-      padding: 0.25rem 0.75rem;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      background: #fff;
-      text-decoration: none;
+    pre {
+      font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
+      font-size: 0.8125rem;
+      line-height: var(--grid);
+      background: #f5f5f5;
+      overflow-x: auto;
     }
 
-    .gh-link:hover {
-      background: #f0f0f0;
+    .install {
+      margin-top: calc(2 * var(--grid));
+      padding-top: calc(var(--grid) - 1px);
+      border-top: 1px solid #ddd;
+    }
+
+    .install p {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.875rem;
+      color: #666;
+    }
+
+    .install a {
+      color: #333;
     }
   </style>
 </head>
 <body>
-  <a class="gh-link" href="https://github.com/bkazez/css-baseline-grid">GitHub</a>
   <div class="grid-overlay" id="gridOverlay"></div>
 
-  <h1>Baseline Grid Demo</h1>
+  <h1>CSS Baseline Grid</h1>
 
   <p>Every line of text on this page sits on a baseline grid. The red lines
-  mark the grid. Three different font sizes (h1, h2, body) all share the same
-  baseline grid, corrected at runtime via JavaScript.</p>
+  mark the grid. Three different font sizes all share the same baseline,
+  corrected at runtime via JavaScript.</p>
 
   <h2>Rhythm: Text Spacing</h2>
 
@@ -122,6 +122,11 @@
   offset using a zero-height <code>inline-block</code> probe, then adjusts
   <code>margin-top</code> and <code>padding-bottom</code> to shift the text onto
   the grid without changing the element's total box height.</p>
+
+  <div class="install">
+    <pre>npm install css-baseline-grid</pre>
+    <p><a href="https://github.com/bkazez/css-baseline-grid">github.com/bkazez/css-baseline-grid</a></p>
+  </div>
 
   <script>
     function getBaselineY(el) {
@@ -161,10 +166,11 @@
     const gridPx = grid * parseFloat(getComputedStyle(document.documentElement).fontSize);
     alignBaselines(gridPx);
 
-    // Anchor grid overlay to first baseline
+    // Start overlay at first baseline so no grid lines appear above the text
     const overlay = document.getElementById("gridOverlay");
-    const firstBaseline = getBaselineY(document.querySelector("h1"));
-    overlay.style.backgroundPositionY = (firstBaseline + window.scrollY) + "px";
+    const firstBaseline = getBaselineY(document.querySelector("h1")) + window.scrollY;
+    overlay.style.top = firstBaseline + "px";
+    overlay.style.height = (document.documentElement.scrollHeight - firstBaseline) + "px";
   </script>
 </body>
 </html>

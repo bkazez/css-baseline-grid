@@ -24,7 +24,7 @@ body {
 
 /* Zero out browser default margins */
 h1, h2, h3, h4, h5, h6,
-p, ul, ol, li,
+p, pre, ul, ol, li,
 blockquote, figure, figcaption,
 dl, dd, dt {
   margin: 0;
