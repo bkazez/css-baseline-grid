@@ -1,6 +1,6 @@
 # css-baseline-grid
 
-CLI tool to check whether elements sit on a baseline grid, plus a plain CSS rhythm system.
+CLI tool that checks whether text baselines sit on a baseline grid, plus a plain CSS rhythm system.
 
 ## Quick start
 
@@ -16,14 +16,14 @@ node check-grid.mjs http://localhost:3000 --grid 24
 ```
 Baseline Grid Check
   url:       http://localhost:3000
-  grid:      27.4px (from CLI --grid)
-  origin:    h3 "Browse by Instrument" @ y=135.2
+  grid:      24px (from CSS --grid)
+  origin:    h1 "Page Title" baseline @ y=65
   tolerance: 1px
 
- OK   h3  "Browse by Instrument"                  line    0.00    +0.00px
- OK   h3  "Browse by Voicing"                     line    5.00    +0.02px
-MISS  h3  "Off-Grid Heading"                      line   12.31    +8.49px
- OK   h1  "Page Title"                            line   81.00    +0.07px
+ OK   h1  "Page Title"                  line    0.00    +0.00px
+ OK   p   "First paragraph"             line    2.00    +0.00px
+MISS  h2  "Off-Grid Heading"            line   12.31    +8.49px
+ OK   h3  "On-Grid Heading"             line   81.00    +0.00px
 
 4 checked: 3 OK, 1 MISS
 ```
@@ -42,7 +42,7 @@ Exit code 0 = all pass, 1 = any MISS.
 </style>
 ```
 
-`rhythm.css` zeros out browser default margins and sets `line-height: var(--grid)` on body. You set font sizes and spacing in your own stylesheet.
+`rhythm.css` zeros out browser default margins, sets `line-height: var(--grid)` on body, and prevents monospace inline elements (`code`, `kbd`, `samp`) from inflating line boxes.
 
 ## Patterns
 
@@ -72,12 +72,64 @@ h2 { margin-top: calc(2 * var(--grid)); }
 }
 ```
 
+## Baseline correction for mixed font sizes
+
+When all text uses the same font-size, baselines naturally align if element tops are on-grid. But different font sizes (e.g. larger headings) have different baseline positions within the same line box, so their baselines land off-grid by a few pixels.
+
+CSS has no way to read font metrics, so this requires a small JS correction at runtime. The technique:
+
+1. Insert a zero-height `inline-block` with `vertical-align: baseline` into an element
+2. Its `.getBoundingClientRect().top` gives the baseline Y (the probe snaps to the baseline)
+3. Compare each element's baseline offset to the body text reference
+4. Apply the difference: reduce `margin-top`, add `padding-bottom` by the same amount
+
+The margin/padding swap shifts the text onto the grid without changing the element's total box height, so subsequent elements stay aligned.
+
+```js
+function getBaselineY(el) {
+  const probe = document.createElement("span");
+  probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+  el.insertBefore(probe, el.firstChild);
+  const y = probe.getBoundingClientRect().top;
+  probe.remove();
+  return y;
+}
+
+function getBaselineOffset(el) {
+  return getBaselineY(el) - el.getBoundingClientRect().top;
+}
+
+function alignBaselines(gridPx) {
+  // Measure body text baseline offset as reference
+  const ref = document.createElement("p");
+  ref.textContent = "x";
+  ref.style.cssText = "position:absolute;visibility:hidden";
+  document.body.appendChild(ref);
+  const refOffset = getBaselineOffset(ref);
+  ref.remove();
+
+  // Correct each element with a different baseline offset
+  document.querySelectorAll("h1, h2, h3, h4, h5, h6, p").forEach(el => {
+    const elOffset = getBaselineOffset(el);
+    const raw = elOffset - refOffset;
+    const correction = ((raw % gridPx) + gridPx) % gridPx;
+    if (correction === 0) return;
+
+    const currentMargin = parseFloat(getComputedStyle(el).marginTop);
+    el.style.marginTop = (currentMargin - correction) + "px";
+    el.style.paddingBottom = correction + "px";
+  });
+}
+```
+
+See `demo.html` for a working example with mixed heading sizes.
+
 ## CLI reference
 
 | Option | Description | Default |
 |---|---|---|
 | `--grid <px>` | Grid height in px | Auto-detect from `--grid` CSS custom property |
-| `--origin <selector>` | Element whose top edge = grid line 0 | First matched element |
+| `--origin <selector>` | Element whose baseline = grid line 0 | First matched element |
 | `--selectors <list>` | Comma-separated CSS selectors | `h1,h2,h3,h4,h5,h6` |
 | `--screenshot <path>` | Save full-page screenshot with red grid overlay | -- |
 | `--auth <user:pass>` | HTTP basic auth | -- |
@@ -87,7 +139,9 @@ h2 { margin-top: calc(2 * var(--grid)); }
 
 ## How it works
 
-For each element matching `--selectors`, the tool computes `offset = element.top - origin.top`, then `gridError = (offset / gridPx - round(offset / gridPx)) * gridPx`. An element is on-grid when `|gridError| <= tolerance`.
+The tool measures actual text baselines, not CSS box edges. For each element, it inserts a zero-height `inline-block` probe with `vertical-align: baseline` to detect the baseline Y coordinate. Then: `offset = element.baseline - origin.baseline`, `gridError = (offset / gridPx - round(offset / gridPx)) * gridPx`. An element is on-grid when `|gridError| <= tolerance`.
+
+Screenshot overlays are anchored to the origin's baseline so grid lines pass through text baselines, not element tops.
 
 ## License
 
