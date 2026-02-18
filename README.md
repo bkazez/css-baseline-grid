@@ -1,19 +1,17 @@
 # css-baseline-grid
 
-Print typography has obeyed baseline grids for centuries. Web typography never has. This library fixes that: a CSS rhythm system, a JS baseline corrector, and a CLI tool to verify alignment. Designed for both humans and LLMs -- the CLI produces structured output and exit codes so an AI coding agent can check and fix baseline alignment in a build loop.
+Print typography has obeyed baseline grids for centuries. Web typography never has. This changes that. Inspired by Robert Bringhurst's *The Elements of Typographic Style*.
 
-**[See the live demo](https://bkazez.github.io/css-baseline-grid/)** -- three font sizes, one baseline grid.
+**[See the live demo](https://bkazez.github.io/css-baseline-grid/)** — three font sizes, one baseline grid.
 
-## Quick start
+## check-grid — the baseline evaluator
+
+The main tool. Point it at any URL and it measures actual text baselines — not CSS box edges — to tell you what's on-grid and what isn't. Designed for both humans and LLMs: structured output, `--json` mode, and exit codes so an AI coding agent can check and fix baseline alignment in a build loop.
 
 ```sh
-git clone https://github.com/bkazez/css-baseline-grid.git
-cd css-baseline-grid
-npm install
+npm install css-baseline-grid
 node check-grid.mjs http://localhost:3000 --grid 24
 ```
-
-## Example output
 
 ```
 Baseline Grid Check
@@ -32,7 +30,28 @@ MISS  h2  "Off-Grid Heading"            line   12.31    +8.49px
 
 Exit code 0 = all pass, 1 = any MISS.
 
-## CSS setup
+### How it measures
+
+For each element, the tool inserts a zero-height `inline-block` probe with `vertical-align: baseline` to detect the baseline Y coordinate in page pixels. Then: `offset = element.baseline - origin.baseline`, `gridError = (offset / gridPx - round(offset / gridPx)) * gridPx`. On-grid when `|gridError| <= tolerance`.
+
+Screenshot overlays are anchored to the origin's baseline so grid lines pass through text baselines, not element tops.
+
+### CLI reference
+
+| Option | Description | Default |
+|---|---|---|
+| `--grid <px>` | Grid height in px | Auto-detect from `--grid` CSS custom property |
+| `--origin <selector>` | Element whose baseline = grid line 0 | First matched element |
+| `--selectors <list>` | Comma-separated CSS selectors | `h1,h2,h3,h4,h5,h6` |
+| `--screenshot <path>` | Save full-page screenshot with red grid overlay | — |
+| `--auth <user:pass>` | HTTP basic auth | — |
+| `--viewport <WxH>` | Viewport dimensions | `1280x900` |
+| `--tolerance <px>` | Max acceptable grid error | `1` |
+| `--json` | Output JSON instead of table | — |
+
+## CSS utilities
+
+`rhythm.css` is a starting point, not a complete solution. Baseline grids on the web are inherently fiddly — every border, padding, and font-size change can knock things off-grid. The CSS gives you the foundation (margin resets, `line-height: var(--grid)`, monospace line-height fix), but expect to need per-project adjustments. The evaluator above is what tells you when something drifts.
 
 ```html
 <link rel="stylesheet" href="rhythm.css">
@@ -44,30 +63,17 @@ Exit code 0 = all pass, 1 = any MISS.
 </style>
 ```
 
-`rhythm.css` zeros out browser default margins, sets `line-height: var(--grid)` on body, and prevents monospace inline elements (`code`, `kbd`, `samp`) from inflating line boxes.
+### Patterns
 
-## Patterns
-
-**rhythm** -- space text in grid multiples:
+**rhythm** — space text in grid multiples:
 
 ```css
-/* Before: arbitrary margin */
-h2 { margin-top: 2em; }
-
-/* After: grid-aligned margin */
 h2 { margin-top: calc(2 * var(--grid)); }
 ```
 
-**rhythm-box** -- bordered containers that stay on-grid:
+**rhythm-box** — bordered containers that stay on-grid:
 
 ```css
-/* Before: border pushes content off-grid */
-.box {
-  padding-top: 1.5rem;
-  border-top: 1px solid #ccc;
-}
-
-/* After: subtract border from padding */
 .box {
   padding-top: calc(var(--grid) - 1px);
   border-top: 1px solid #ccc;
@@ -125,25 +131,6 @@ function alignBaselines(gridPx) {
 ```
 
 See `demo.html` for a working example with mixed heading sizes.
-
-## CLI reference
-
-| Option | Description | Default |
-|---|---|---|
-| `--grid <px>` | Grid height in px | Auto-detect from `--grid` CSS custom property |
-| `--origin <selector>` | Element whose baseline = grid line 0 | First matched element |
-| `--selectors <list>` | Comma-separated CSS selectors | `h1,h2,h3,h4,h5,h6` |
-| `--screenshot <path>` | Save full-page screenshot with red grid overlay | -- |
-| `--auth <user:pass>` | HTTP basic auth | -- |
-| `--viewport <WxH>` | Viewport dimensions | `1280x900` |
-| `--tolerance <px>` | Max acceptable grid error | `1` |
-| `--json` | Output JSON instead of table | -- |
-
-## How it works
-
-The tool measures actual text baselines, not CSS box edges. For each element, it inserts a zero-height `inline-block` probe with `vertical-align: baseline` to detect the baseline Y coordinate. Then: `offset = element.baseline - origin.baseline`, `gridError = (offset / gridPx - round(offset / gridPx)) * gridPx`. An element is on-grid when `|gridError| <= tolerance`.
-
-Screenshot overlays are anchored to the origin's baseline so grid lines pass through text baselines, not element tops.
 
 ## License
 
