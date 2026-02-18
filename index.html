@@ -89,6 +89,24 @@
   on the same baseline grid. Inspired by Robert Bringhurst's
   <cite>The Elements of Typographic Style</cite>.</p>
 
+  <h2>The JS Technique</h2>
+
+  <p>CSS alone cannot achieve a true baseline grid across mixed font sizes because
+  it has no access to font metrics. Different font sizes place the baseline at
+  different positions within the same line box.</p>
+
+  <p>The fix is a runtime probe: insert a zero-height <code>inline-block</code>
+  with <code>vertical-align: baseline</code> into any element and its
+  <code>.getBoundingClientRect().top</code> gives you the baseline Y in page
+  pixels. Compare each element's baseline offset to the body text reference, then
+  apply the difference: reduce <code>margin-top</code>, add
+  <code>padding-bottom</code> by the same amount. The swap shifts the text onto
+  the grid without changing the element's total box height, so subsequent elements
+  stay aligned.</p>
+
+  <p>The companion CLI tool produces structured output and exit codes so both
+  humans and LLMs can check and fix baseline alignment in a build loop.</p>
+
   <h2>Rhythm: Text Spacing</h2>
 
   <p>The rhythm pattern spaces text elements in multiples of <code>var(--grid)</code>.
@@ -112,20 +130,6 @@
     <p>This box has a 1px border with <code>padding: calc(var(--grid) - 1px)</code>.
     The content stays on-grid because the padding compensates for the border.</p>
   </div>
-
-  <h2>How It Works</h2>
-
-  <p>CSS alone cannot achieve a true baseline grid across mixed font sizes because
-  it has no access to font metrics. Different font sizes place the baseline at
-  different positions within the same line box.</p>
-
-  <p>The fix is a small JavaScript function that detects each element's baseline
-  offset using a zero-height <code>inline-block</code> probe, then adjusts
-  <code>margin-top</code> and <code>padding-bottom</code> to shift the text onto
-  the grid without changing the element's total box height.</p>
-
-  <p>The companion CLI tool produces structured output and exit codes so both
-  humans and LLMs can check and fix baseline alignment in a build loop.</p>
 
   <div class="install">
     <pre>npm install css-baseline-grid</pre>
