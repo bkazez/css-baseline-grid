@@ -4,9 +4,52 @@ Print typography has obeyed baseline grids for centuries. Web typography never h
 
 **[See the live demo](https://bkazez.github.io/css-baseline-grid/)** — three font sizes, one baseline grid.
 
+## The JS technique — baseline correction across font sizes
+
+CSS has no way to read font metrics. Different font sizes place the baseline at different positions within the same line box, so headings and body text land on different grids. No amount of `calc()` can fix this in pure CSS.
+
+The fix is a runtime probe: insert a zero-height `inline-block` with `vertical-align: baseline` into any element and its `.getBoundingClientRect().top` gives you the baseline Y in page pixels. Compare each element's baseline offset to the body text reference, then apply the difference: reduce `margin-top`, add `padding-bottom` by the same amount. The swap shifts the text onto the grid without changing the element's total box height, so subsequent elements stay aligned.
+
+```js
+function getBaselineY(el) {
+  const probe = document.createElement("span");
+  probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+  el.insertBefore(probe, el.firstChild);
+  const y = probe.getBoundingClientRect().top;
+  probe.remove();
+  return y;
+}
+
+function getBaselineOffset(el) {
+  return getBaselineY(el) - el.getBoundingClientRect().top;
+}
+
+function alignBaselines(gridPx) {
+  const ref = document.createElement("p");
+  ref.textContent = "x";
+  ref.style.cssText = "position:absolute;visibility:hidden";
+  document.body.appendChild(ref);
+  const refOffset = getBaselineOffset(ref);
+  ref.remove();
+
+  document.querySelectorAll("h1, h2, h3, h4, h5, h6, p").forEach(el => {
+    const elOffset = getBaselineOffset(el);
+    const raw = elOffset - refOffset;
+    const correction = ((raw % gridPx) + gridPx) % gridPx;
+    if (correction === 0) return;
+
+    const currentMargin = parseFloat(getComputedStyle(el).marginTop);
+    el.style.marginTop = (currentMargin - correction) + "px";
+    el.style.paddingBottom = correction + "px";
+  });
+}
+```
+
+See `index.html` for a working example with mixed heading sizes.
+
 ## check-grid — the baseline evaluator
 
-The main tool. Point it at any URL and it measures actual text baselines — not CSS box edges — to tell you what's on-grid and what isn't. Designed for both humans and LLMs: structured output, `--json` mode, and exit codes so an AI coding agent can check and fix baseline alignment in a build loop.
+Point it at any URL and it measures actual text baselines — not CSS box edges — to tell you what's on-grid and what isn't. Designed for both humans and LLMs: structured output, `--json` mode, and exit codes so an AI coding agent can check and fix baseline alignment in a build loop.
 
 ```sh
 npm install css-baseline-grid
@@ -29,12 +72,6 @@ MISS  h2  "Off-Grid Heading"            line   12.31    +8.49px
 ```
 
 Exit code 0 = all pass, 1 = any MISS.
-
-### How it measures
-
-For each element, the tool inserts a zero-height `inline-block` probe with `vertical-align: baseline` to detect the baseline Y coordinate in page pixels. Then: `offset = element.baseline - origin.baseline`, `gridError = (offset / gridPx - round(offset / gridPx)) * gridPx`. On-grid when `|gridError| <= tolerance`.
-
-Screenshot overlays are anchored to the origin's baseline so grid lines pass through text baselines, not element tops.
 
 ### CLI reference
 
@@ -79,58 +116,6 @@ h2 { margin-top: calc(2 * var(--grid)); }
   border-top: 1px solid #ccc;
 }
 ```
-
-## Baseline correction for mixed font sizes
-
-When all text uses the same font-size, baselines naturally align if element tops are on-grid. But different font sizes (e.g. larger headings) have different baseline positions within the same line box, so their baselines land off-grid by a few pixels.
-
-CSS has no way to read font metrics, so this requires a small JS correction at runtime. The technique:
-
-1. Insert a zero-height `inline-block` with `vertical-align: baseline` into an element
-2. Its `.getBoundingClientRect().top` gives the baseline Y (the probe snaps to the baseline)
-3. Compare each element's baseline offset to the body text reference
-4. Apply the difference: reduce `margin-top`, add `padding-bottom` by the same amount
-
-The margin/padding swap shifts the text onto the grid without changing the element's total box height, so subsequent elements stay aligned.
-
-```js
-function getBaselineY(el) {
-  const probe = document.createElement("span");
-  probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
-  el.insertBefore(probe, el.firstChild);
-  const y = probe.getBoundingClientRect().top;
-  probe.remove();
-  return y;
-}
-
-function getBaselineOffset(el) {
-  return getBaselineY(el) - el.getBoundingClientRect().top;
-}
-
-function alignBaselines(gridPx) {
-  // Measure body text baseline offset as reference
-  const ref = document.createElement("p");
-  ref.textContent = "x";
-  ref.style.cssText = "position:absolute;visibility:hidden";
-  document.body.appendChild(ref);
-  const refOffset = getBaselineOffset(ref);
-  ref.remove();
-
-  // Correct each element with a different baseline offset
-  document.querySelectorAll("h1, h2, h3, h4, h5, h6, p").forEach(el => {
-    const elOffset = getBaselineOffset(el);
-    const raw = elOffset - refOffset;
-    const correction = ((raw % gridPx) + gridPx) % gridPx;
-    if (correction === 0) return;
-
-    const currentMargin = parseFloat(getComputedStyle(el).marginTop);
-    el.style.marginTop = (currentMargin - correction) + "px";
-    el.style.paddingBottom = correction + "px";
-  });
-}
-```
-
-See `demo.html` for a working example with mixed heading sizes.
 
 ## License
 
