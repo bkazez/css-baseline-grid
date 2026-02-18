@@ -1,6 +1,8 @@
 # css-baseline-grid
 
-CLI tool that checks whether text baselines sit on a baseline grid, plus a plain CSS rhythm system.
+Print typography has obeyed baseline grids for centuries. Web typography never has. This library fixes that: a CSS rhythm system, a JS baseline corrector, and a CLI tool to verify alignment.
+
+Inspired by Robert Bringhurst's *The Elements of Typographic Style*, which argues that the baseline grid is the typographer's most essential tool for vertical rhythm -- especially in multi-column layouts where adjacent columns must line up.
 
 **[See the live demo](https://bkazez.github.io/css-baseline-grid/)** -- three font sizes, one baseline grid.
 
