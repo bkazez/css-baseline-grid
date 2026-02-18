@@ -1,0 +1,44 @@
+/*
+ * rhythm.css -- Baseline grid rhythm system
+ *
+ * Set --grid on :root to your line-height. All vertical spacing
+ * is expressed as multiples of --grid.
+ *
+ * Patterns (apply in your own stylesheets):
+ *
+ *   rhythm (text spacing):
+ *     margin-top: calc(2 * var(--grid));
+ *
+ *   rhythm-box (bordered containers):
+ *     padding-top: calc(var(--grid) - 1px);
+ *     border-top: 1px solid #ccc;
+ */
+
+:root {
+  --grid: 1.5rem;
+}
+
+body {
+  line-height: var(--grid);
+}
+
+/* Zero out browser default margins */
+h1, h2, h3, h4, h5, h6,
+p, ul, ol, li,
+blockquote, figure, figcaption,
+dl, dd, dt {
+  margin: 0;
+}
+
+/* Headings: inherit size and line-height from body.
+   Set font-size per element in your own stylesheet. */
+h1, h2, h3, h4, h5, h6 {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Monospace inline elements: prevent taller font metrics from
+   inflating line boxes. Text still renders at full size. */
+code, kbd, samp {
+  line-height: 0;
+}

@@ -1,0 +1,20 @@
+{
+  "name": "css-baseline-grid",
+  "version": "0.1.0",
+  "description": "CLI tool to check whether elements sit on a baseline grid, plus a plain CSS rhythm system",
+  "type": "module",
+  "bin": {
+    "check-grid": "./check-grid.mjs"
+  },
+  "keywords": [
+    "baseline-grid",
+    "vertical-rhythm",
+    "css",
+    "typography",
+    "testing"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^24.0.0"
+  }
+}
